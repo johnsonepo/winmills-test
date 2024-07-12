@@ -305,16 +305,16 @@ class ProfileController extends Controller
             return $this->goHome();
         }
     
-        $user = $this->findModel($id);
+        $model = $this->findModel($id);
     
-        if (!$user) {
+        if (!$model) {
             throw new NotFoundHttpException('User not found.');
         }
     
         $authManager = Yii::$app->authManager;
-        $authManager->revokeAll($user->id);
+        $authManager->revokeAll($model->id);
     
-        $user->delete();
+        $model->delete();
     
         return $this->redirect(['user/users']);
     }
