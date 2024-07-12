@@ -17,11 +17,28 @@ AppAsset::register($this);
     <?php $this->registerCsrfMetaTags() ?>
     <title><?= Html::encode($this->title) ?></title>
     <?php $this->head() ?>
+    <style>
+    .bg-light {
+        background-color: #f0f0f0; 
+    }
+    .border {
+        border: 1px solid #ccc;
+    }
+    .bg-light {
+        background-color: #f0f0f0; 
+    }
+    .bg-dark {
+        background-color: #F0F4F9; 
+    }
+    .shadow {
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+</style>
 </head>
-<body class="d-flex flex-column h-100">
+<body class="d-flex flex-column h-100 bg-light">
 <?php $this->beginBody() ?>
 
-<main role="main">
+<main role="main ">
     <div class="container">
         <?= $content ?>
     </div>
