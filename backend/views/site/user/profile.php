@@ -38,7 +38,7 @@ $this->title = 'Profile';
             <div class="help-block"></div>
         </div>
 
-        <div class="form-group">
+        <div class="form-group pt-4">
             <?= Html::submitButton('Update', ['class' => 'btn btn-primary']) ?>
         </div>
 
