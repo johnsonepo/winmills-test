@@ -1,0 +1,16 @@
+run commands in root 
+1) composer install 
+2) php init 
+3) php yii migrate --migrationPath=@yii/rbac/migrations
+4) php ./yii rbac/init
+5) composer require --dev yiisoft/yii2-faker
+5) php yii migrate/create role_init_rbac
+7) php yii migrate
+8) php yii seed/index
+
+cd backend
+9) npm install
+
+
+
+

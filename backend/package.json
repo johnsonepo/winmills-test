@@ -1,0 +1,10 @@
+{
+  "scripts": {
+     "build-css": "tailwindcss web/css/input.css -o web/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.4"
+  }
+}

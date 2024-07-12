@@ -1,0 +1,23 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine on
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    RewriteRule ^.*$ index.php [L]
+
+    RewriteRule ^assets/(.*)$ - [L]
+    RewriteRule ^css/(.*)$ - [L]
+    RewriteRule ^js/(.*)$ - [L]
+    RewriteRule ^images/(.*)$ - [L]
+</IfModule>
+
+<Files .*>
+    Order Deny,Allow
+    Deny from all
+</Files>
+
+<Directory "/backend/web/uploads">
+    Order Deny,Allow
+    Deny from all
+</Directory>
