@@ -55,7 +55,7 @@ class ProfileController extends Controller
         $model->generateAuthKey();
 
         if (!empty($model->password_hash)) {
-            //$model->setPassword($model->password_hash);
+            $model->setPassword($model->password_hash);
         } else {
             unset($model->password_hash); 
         }
