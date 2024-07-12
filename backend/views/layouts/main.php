@@ -22,22 +22,6 @@ AppAsset::register($this);
     <title><?= Html::encode($this->title) ?></title>
     <?php $this->head() ?>
     <link href="/backend/web/css/tailwind.css" rel="stylesheet">
-    <style>
-        @media (min-width: 640px) {
-            #userSubMenu {
-                display: none;
-                position: absolute;
-                top: 100%;
-                left: 0;
-                z-index: 999;
-            }
-
-            #userIcon:hover + #userSubMenu,
-            #userSubMenu:hover {
-                display: block;
-            }
-        }
-    </style>
 </head>
 <body class="d-flex flex-column h-100">
 <?php $this->beginBody() ?>
@@ -59,7 +43,7 @@ AppAsset::register($this);
         $dropdownItems = [
             [
                 'label' => 'My Profile',
-                'url' => ['/user/profile'], 
+                'url' => ['/user/profile'],
                 'linkOptions' => ['class' => 'dropdown-item'],
             ],
             '<div class="dropdown-divider"></div>',
@@ -68,16 +52,16 @@ AppAsset::register($this);
                 'url' => ['/site/logout'],
                 'linkOptions' => [
                     'class' => 'dropdown-item',
-                    'data-method' => 'post', 
+                    'data-method' => 'post',
                 ],
             ],
         ];
 
         $menuItems[] = [
-            'label' => 'Welcome '. Yii::$app->user->identity->username, 
-            'items' => $dropdownItems, 
-            'encode' => false, 
-            'options' => ['class' => 'nav-item dropdown'], 
+            'label' => 'Welcome '. Yii::$app->user->identity->username,
+            'items' => $dropdownItems,
+            'encode' => false,
+            'options' => ['class' => 'nav-item dropdown'],
             'linkOptions' => [
                 'class' => 'nav-link dropdown-toggle',
                 'id' => 'navbarDropdown',
@@ -103,32 +87,33 @@ AppAsset::register($this);
             'links' => isset($this->params['breadcrumbs']) ? $this->params['breadcrumbs'] : [],
         ]) ?>
         <?= Alert::widget() ?>
-     
+
         <div class="absolute left-0 top-11 bottom-0 overflow-x-hidden w-full">
             <div class="flex h-full">
                 <div class="w-14 md:w-[200px] bg-[#212529] pt-8 text-white px-2 relative">
-                    <div class="">   
-                    <?php if (!Yii::$app->user->isGuest && Yii::$app->authManager->checkAccess(Yii::$app->user->id, 'admin')): ?>
-                        <div class="relative group w-20 sm:w-full">
-                            <div id="userIcon" class="flex justify-start items-center cursor-pointer hover:bg-gray-600 p-2 rounded-xl">
-                                <svg class="w-8 sm:w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-                                </svg>
-                                <span class="hidden sm:block ml-2 ">Users</span>
-                                <svg class="w-4 h-4 ml-auto group-hover:-rotate-90 transition-transform duration-200 hidden sm:block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l-7-7h14l-7 7z" />
-                                </svg>
+                    <div class="">
+                        <?php if (!Yii::$app->user->isGuest && Yii::$app->authManager->checkAccess(Yii::$app->user->id, 'admin')): ?>
+                            <div class="sideMenu relative group w-20 sm:w-full">
+                                <div id="userIcon" class="flex justify-start items-center cursor-pointer hover:bg-gray-600 p-2 rounded-xl" 
+                                     data-open="false">
+                                    <svg class="w-8 sm:w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                                    </svg>
+                                    <span class="hidden md:block ml-2">Users</span>
+                                    <svg class="w-4 h-4 ml-auto group-hover:-rotate-90 transition-transform duration-200 hidden md:block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l-7-7h14l-7 7z" />
+                                    </svg>
+                                </div>
+                                <ul id="subMenu" class="absolute top-0 left-0 bg-[#212529] shadow-md overflow-hidden hidden w-40">
+                                    <li>
+                                        <a class="block hover:bg-gray-500 p-2" href="<?= \yii\helpers\Url::to(['user/users']) ?>">All Users</a>
+                                    </li>
+                                    <li>
+                                        <a class="block hover:bg-gray-500 p-2" href="<?= \yii\helpers\Url::to(['user/new']) ?>">Add New User</a>
+                                    </li>
+                                </ul>
                             </div>
-                            <ul id="userSubMenu" class="absolute sm:left-full top-0 left-0 bg-[#212529] shadow-md overflow-hidden hidden w-40">
-                                <li>
-                                    <a class="block hover:bg-gray-500 p-2" href="<?= \yii\helpers\Url::to(['user/users']) ?>">All Users</a>
-                                </li>
-                                <li>
-                                    <a class="block hover:bg-gray-500 p-2" href="<?= \yii\helpers\Url::to(['user/new']) ?>">Add New User</a>
-                                </li>
-                            </ul>
-                        </div>
-                    <?php endif; ?>
+                        <?php endif; ?>
 
                     </div>
                 </div>
@@ -150,51 +135,43 @@ AppAsset::register($this);
 </footer>
 
 <?php $this->endBody() ?>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const userIcon = document.getElementById('userIcon');
-        const userSubMenu = document.getElementById('userSubMenu');
+        const sideemenu = document.querySelector('.sideMenu');
+        const submenu = document.getElementById('subMenu');
 
-        function toggleSubMenu(event) {
-            event.stopPropagation();
-            userSubMenu.classList.toggle('hidden');
+        function toggleSubMenu() {
+            submenu.classList.toggle('hidden');
         }
 
-        function addSubMenuToggle() {
-            if (window.innerWidth <= 640) {
-                userIcon.addEventListener('click', toggleSubMenu);
-                userIcon.removeEventListener('mouseenter', showSubMenu);
-                userIcon.removeEventListener('mouseleave', hideSubMenu);
-            } else {
-                userIcon.removeEventListener('click', toggleSubMenu);
-                userIcon.addEventListener('mouseenter', showSubMenu);
-                userIcon.addEventListener('mouseleave', hideSubMenu);
-                userSubMenu.classList.remove('hidden'); 
-            }
-        }
-
-        function showSubMenu() {
-            if (window.innerWidth > 640) {
-                userSubMenu.classList.remove('hidden');
-            }
-        }
-
-        function hideSubMenu() {
-            userSubMenu.classList.add('hidden');
-        }
-
-        window.addEventListener('resize', addSubMenuToggle);
-        window.addEventListener('load', addSubMenuToggle);
-
-        document.addEventListener('click', function () {
-            userSubMenu.classList.add('hidden');
+        sideemenu.addEventListener('mouseover', function () {
+            submenu.classList.remove('hidden');
         });
 
-        userSubMenu.addEventListener('click', function (event) {
-            event.stopPropagation();
+        sideemenu.addEventListener('mouseout', function () {
+            submenu.classList.add('hidden');
+        });
+
+        sideemenu.addEventListener('click', function (event) {
+            event.preventDefault();
+            toggleSubMenu();
+        });
+
+        sideemenu.addEventListener('touchstart', function (event) {
+            event.preventDefault(); 
+            toggleSubMenu();
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!sideemenu.contains(event.target) && !submenu.classList.contains('hidden')) {
+                submenu.classList.add('hidden');
+            }
         });
     });
 </script>
+
+
 </body>
 </html>
 <?php $this->endPage() ?>
