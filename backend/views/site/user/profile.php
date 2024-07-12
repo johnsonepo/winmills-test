@@ -49,8 +49,8 @@ $this->title = 'Profile';
 <?php
 $js = <<<JS
 document.getElementById('toggle-show-password').addEventListener('click', function () {
-    var passwordInput = document.getElementById('password-input');
-    var type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+    let passwordInput = document.getElementById('password-input');
+    let type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
     passwordInput.setAttribute('type', type);
 });
 JS;
