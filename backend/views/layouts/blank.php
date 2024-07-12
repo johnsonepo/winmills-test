@@ -24,12 +24,6 @@ AppAsset::register($this);
     .border {
         border: 1px solid #ccc;
     }
-    .bg-light {
-        background-color: #f0f0f0; 
-    }
-    .bg-dark {
-        background-color: #F0F4F9; 
-    }
     .shadow {
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
