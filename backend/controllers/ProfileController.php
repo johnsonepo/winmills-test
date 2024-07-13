@@ -30,6 +30,7 @@ class ProfileController extends Controller
         $roles = $auth->getRoles();
 
         $model = new User();
+        $model->scenario = User::SCENARIO_CREATE;
                 
         $csrf_token = '';
         if (isset(Yii::$app->request->post()["_csrf-backend"])) {
@@ -45,20 +46,9 @@ class ProfileController extends Controller
         if (isset(Yii::$app->request->post()["User"])) {
             $new_user = Yii::$app->request->post()["User"];
         } 
-
-        foreach ($new_user as $attribute => $value) {
-            if ($model->hasProperty($attribute)) {
-                $model->$attribute = $value;
-            }
-        }
-       
+        
+        $this->validateInput($model, $new_user);
         $model->generateAuthKey();
-
-        if (!empty($model->password_hash)) {
-            $model->setPassword($model->password_hash);
-        } else {
-            unset($model->password_hash); 
-        }
         $model->status = $model->status ?? 9;
 
         if ($model->save()) {
@@ -71,7 +61,10 @@ class ProfileController extends Controller
             Yii::$app->session->setFlash('error', 'Failed to create user.');
         }
         
-        return $this->goBack();
+        return $this->render('/site/user/add-new', [
+            'model' => $model,
+            'roles' => $roles
+        ]);
     }
 
     public function actionIndex()
@@ -84,6 +77,7 @@ class ProfileController extends Controller
         $model->password_hash = ''; 
 
         $this->assignRole($model);
+        $model->scenario = User::SCENARIO_UPDATE;
 
         $this->layout = 'main';
         return $this->render('/site/user/profile', ['model' => $model]);
@@ -99,11 +93,15 @@ class ProfileController extends Controller
         }
         
         $auth = Yii::$app->authManager;
+
         $roles = $auth->getRoles();
 
         $model = new User();
+        $model->scenario = User::SCENARIO_CREATE;
 
         $this->layout = 'main';
+        $model->password_hash = '';
+
         return $this->render('/site/user/add-new', [
             'model' => $model,
             'roles' => $roles
@@ -115,11 +113,9 @@ class ProfileController extends Controller
         if (Yii::$app->user->isGuest) {
             return $this->goHome();
         }
-        if (!Yii::$app->user->can('user')) {
-            return $this->goHome();
-        }
 
         $model = User::findOne(Yii::$app->user->identity->id);
+        $model->scenario = User::SCENARIO_UPDATE;
         
         if (!$model) {
             throw new NotFoundHttpException('User not found.');
@@ -141,22 +137,9 @@ class ProfileController extends Controller
         } 
         $new_user = (array)$new_user;
 
-        foreach ($new_user as $attribute => $value) {
-            if ($model->hasProperty($attribute)) {
-                $model->$attribute = $value;
-            }
-        }
-
-        if (!empty($model->password_hash)) {
-            $model->setPassword($model->password_hash);
-        } else {
-            unset($model->password_hash); 
-        }
+        $this->validateInput($model, $new_user);
 
         if ($model->save()) {
-
-            $authManager = Yii::$app->authManager;
-            $roles = $authManager->getRolesByUser($model->id);
 
             $this->assignRole($model);
 
@@ -198,6 +181,7 @@ class ProfileController extends Controller
         ]);
 
         $this->layout = 'main';
+
         return $this->render('/site/user/users', [
             'dataProvider' => $data_provider,
         ]);
@@ -213,6 +197,7 @@ class ProfileController extends Controller
         }
 
         $model = User::findOne($id);
+        $model->scenario = User::SCENARIO_UPDATE;
 
         if (!$model) {
             throw new NotFoundHttpException('User not found.');
@@ -234,17 +219,7 @@ class ProfileController extends Controller
         } 
         $new_user = (array)$new_user;
 
-        foreach ($new_user as $attribute => $value) {
-            if ($model->hasProperty($attribute)) {
-                $model->$attribute = $value;
-            }
-        }
-
-        if (!empty($model->password_hash)) {
-            $model->setPassword($model->password_hash);
-        } else {
-            unset($model->password_hash); 
-        }
+        $this->validateInput($model, $new_user);
 
         if ($model->save()) {
 
@@ -325,6 +300,33 @@ class ProfileController extends Controller
         }
         throw new NotFoundHttpException('The requested page does not exist.');
     }
+
+    protected function validateInput($model, $post_data)
+    {
+        $post_data = array_map('trim', $post_data); 
+        $post_data = array_map('htmlspecialchars', $post_data); 
+
+        foreach ($post_data as $attribute => $value) {
+            if ($value === '' || $value === null) {
+                unset($post_data[$attribute]);
+                continue; 
+            }
+            
+            if ($model->hasProperty($attribute) ) {
+                if ($attribute === 'password_hash') {
+                    $model->setPassword($value);
+                }else{
+                    if($model->$attribute != $value) {
+                        $model->$attribute = $value;
+                    }
+                }
+                
+            }
+        }
+        
+        return $model;
+    }
+
     private function assignRole($model)
     {
         Yii::$app->db->createCommand()->update('auth_assignment', ['item_name' => $model->type], ['user_id' => $model->id])->execute();
