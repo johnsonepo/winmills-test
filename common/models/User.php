@@ -30,6 +30,9 @@ class User extends ActiveRecord implements IdentityInterface
     const STATUS_DELETED = 0;
     const STATUS_INACTIVE = 9;
     const STATUS_ACTIVE = 10;
+
+    const SCENARIO_CREATE = 'create';
+    const SCENARIO_UPDATE = 'update';
     public $role;
 
     /**
@@ -56,11 +59,28 @@ class User extends ActiveRecord implements IdentityInterface
     public function rules()
     {
         return [
+            [['username', 'auth_key', 'password_hash', 'email'], 'required', 'on' => self::SCENARIO_CREATE],
+            [['username', 'auth_key', 'password_hash'], 'safe', 'on' => self::SCENARIO_UPDATE],
+            [['username', 'email'], 'unique'],
+            [['username', 'email', 'password_hash', 'password_reset_token', 'auth_key'], 'string', 'max' => 255],
+            ['email', 'email'],
+            [['username'], 'match', 'pattern' => '/^[a-zA-Z0-9_]+$/', 'message' => 'Username can only contain alphanumeric characters and underscores.'],
             ['status', 'default', 'value' => self::STATUS_INACTIVE],
             ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
+            ['type', 'default', 'value' => 'user'],
             ['password_hash', 'string', 'min' => 3],
             [['role'], 'string', 'max' => 15],
+            ['created_at', 'integer'],
+            ['updated_at', 'integer'],
         ];
+    }
+
+    public function scenarios()
+    {
+        $scenarios = parent::scenarios();
+        $scenarios[self::SCENARIO_CREATE] = ['username', 'auth_key', 'password_hash', 'email', 'status', 'type', 'created_at', 'updated_at'];
+        $scenarios[self::SCENARIO_UPDATE] = ['username', 'auth_key', 'password_hash', 'email', 'status', 'type', 'created_at', 'updated_at'];
+        return $scenarios;
     }
 
     /**
