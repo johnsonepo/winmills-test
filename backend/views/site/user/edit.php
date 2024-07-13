@@ -10,18 +10,17 @@ $this->title = 'Edit';
 ?>
 
 <div class="site-profile">
-    <div class="profile-form w-1/3">
-    
-    <div class="">
-        <?= Yii::$app->session->getFlash('success') ?>
-    </div>
+    <div class="profile-form sm:w-full md:w-1/2 lg:w-1/3 mx-auto">
 
+        <div class="">
+            <?= Yii::$app->session->getFlash('success') ?>
+        </div>
 
         <?php $form = ActiveForm::begin(['action' => ['profile/edited', 'id' => $model->id]]); ?>
 
         <?= $form->field($model, 'username')->textInput(['maxlength' => true]) ?>
-        <?= $form->field($model, 'email')->textInput(['maxlength' => true]) ?>
-        <?= $form->field($model, 'password_hash')->passwordInput(['value' => '']) ?>
+        <?= $form->field($model, 'email')->textInput(['maxlength' => true, 'type' => 'email']) ?>
+        <?= $form->field($model, 'password_hash')->passwordInput(['maxlength' => true, 'value' => ''])->label('Password') ?>
 
         <?= $form->field($model, 'type')->dropDownList(
             \yii\helpers\ArrayHelper::map($roles, 'name', 'name'),
