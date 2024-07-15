@@ -2,6 +2,8 @@
 
 namespace common\models;
 
+use common\behaviors\CommonModelBehavior;
+use common\constants\UserStatus;
 use Yii;
 use yii\base\NotSupportedException;
 use yii\behaviors\TimestampBehavior;
@@ -19,18 +21,13 @@ use yii\web\IdentityInterface;
  * @property string $email
  * @property string $auth_key
  * @property integer $status
- * @property integer $type
- * @property integer $created_at
- * @property integer $updated_at
- * @property string $password write-only password
+ * @property string $type
+ * @property string $created_at
+ * @property string $updated_at
  * 
  */
-class User extends ActiveRecord implements IdentityInterface
+class User extends ActiveRecord implements IdentityInterface, UserStatus
 {
-    const STATUS_DELETED = 0;
-    const STATUS_INACTIVE = 9;
-    const STATUS_ACTIVE = 10;
-
     const SCENARIO_CREATE = 'create';
     const SCENARIO_UPDATE = 'update';
     public $role;
@@ -49,7 +46,7 @@ class User extends ActiveRecord implements IdentityInterface
     public function behaviors()
     {
         return [
-            TimestampBehavior::class,
+            CommonModelBehavior::class,
         ];
     }
 
@@ -64,31 +61,34 @@ class User extends ActiveRecord implements IdentityInterface
             [['username', 'email'], 'unique'],
             [['username', 'email', 'password_hash', 'password_reset_token', 'auth_key'], 'string', 'max' => 255],
             ['email', 'email'],
-            [['username'], 'match', 'pattern' => '/^[a-zA-Z0-9_]+$/', 'message' => 'Username can only contain alphanumeric characters and underscores.'],
-            ['status', 'default', 'value' => self::STATUS_INACTIVE],
-            ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
+            [['username'], 'match', 'pattern' => '/^[a-zA-Z0-9_]+$/',
+                'message' => 'Username can only contain alphanumeric characters and underscores.'],
+            ['status', 'default', 'value' => UserStatus::STATUS_INACTIVE],
+            ['status', 'in', 'range' => [UserStatus::STATUS_ACTIVE, UserStatus::STATUS_INACTIVE, UserStatus::STATUS_DELETED]],
             ['type', 'default', 'value' => 'user'],
             ['password_hash', 'string', 'min' => 3],
             [['role'], 'string', 'max' => 15],
-            ['created_at', 'integer'],
-            ['updated_at', 'integer'],
+            [['created_at', 'updated_at'], 'safe'],
         ];
     }
 
     public function scenarios()
     {
         $scenarios = parent::scenarios();
-        $scenarios[self::SCENARIO_CREATE] = ['username', 'auth_key', 'password_hash', 'email', 'status', 'type', 'created_at', 'updated_at'];
-        $scenarios[self::SCENARIO_UPDATE] = ['username', 'auth_key', 'password_hash', 'email', 'status', 'type', 'created_at', 'updated_at'];
+        $scenarios[self::SCENARIO_CREATE] = [
+            'username', 'auth_key', 'password_hash', 'email', 'status', 'type', 'created_at', 'updated_at'
+        ];
+        $scenarios[self::SCENARIO_UPDATE] = [
+            'username', 'auth_key', 'password_hash', 'email', 'status', 'type', 'created_at', 'updated_at'
+        ];
         return $scenarios;
     }
-
     /**
      * {@inheritdoc}
      */
     public static function findIdentity($id)
     {
-        return static::findOne(['id' => $id, 'status' => self::STATUS_ACTIVE]);
+        return static::findOne(['id' => $id, 'status' => UserStatus::STATUS_ACTIVE]);
     }
 
     /**
@@ -107,7 +107,7 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public static function findByUsername($username)
     {
-        return static::findOne(['username' => $username, 'status' => self::STATUS_ACTIVE]);
+        return static::findOne(['username' => $username, 'status' => UserStatus::STATUS_ACTIVE]);
     }
 
     /**
@@ -124,7 +124,7 @@ class User extends ActiveRecord implements IdentityInterface
 
         return static::findOne([
             'password_reset_token' => $token,
-            'status' => self::STATUS_ACTIVE,
+            'status' => UserStatus::STATUS_ACTIVE,
         ]);
     }
 
@@ -134,10 +134,11 @@ class User extends ActiveRecord implements IdentityInterface
      * @param string $token verify email token
      * @return static|null
      */
-    public static function findByVerificationToken($token) {
+    public static function findByVerificationToken($token)
+    {
         return static::findOne([
             'verification_token' => $token,
-            'status' => self::STATUS_INACTIVE
+            'status' => UserStatus::STATUS_INACTIVE
         ]);
     }
 
@@ -234,4 +235,5 @@ class User extends ActiveRecord implements IdentityInterface
     {
         $this->password_reset_token = null;
     }
+
 }
