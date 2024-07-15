@@ -2,8 +2,11 @@
 
 namespace backend\controllers;
 
+use common\behaviors\CommonModelBehavior;
+use common\models\ActivityLog;
 use common\models\LoginForm;
 use Yii;
+use yii\data\ActiveDataProvider;
 use yii\filters\VerbFilter;
 use yii\filters\AccessControl;
 use yii\web\Controller;
@@ -40,6 +43,7 @@ class SiteController extends Controller
                     'logout' => ['post', 'get'],
                 ],
             ],
+            CommonModelBehavior::class,
         ];
     }
 
@@ -62,7 +66,23 @@ class SiteController extends Controller
      */
     public function actionIndex()
     {
-        return $this->render('index');
+        if (!Yii::$app->user->isGuest) {
+            if (!Yii::$app->session->get('login_logged')) {
+                $this->logActivity('login', get_class($this), 'logged in');
+                Yii::$app->session->set('login_logged', true); 
+            }
+        }
+
+        $data_provider = new ActiveDataProvider([
+            'query' => ActivityLog::find()->orderBy(['created_at' => SORT_DESC]),
+            'pagination' => [
+                'pageSize' => 10, 
+            ],
+        ]);
+
+        return $this->render('index', [
+            'data_provider' => $data_provider,
+        ]);
     }
 
     /**
@@ -79,11 +99,10 @@ class SiteController extends Controller
         $this->layout = 'blank';
         
         $model = new LoginForm();
+        
         if ($model->load(Yii::$app->request->post()) && $model->login()) {
             return $this->goBack();
         }
-
-        //$model->password = '';
 
         return $this->render('login', [
             'model' => $model,
@@ -97,8 +116,36 @@ class SiteController extends Controller
      */
     public function actionLogout()
     {
+        $this->logActivity('logout', get_class($this), 'logged out');
         Yii::$app->user->logout();
-
         return $this->goHome();
+    }
+    public function actionError()
+    {
+        if (\Yii::$app->user->isGuest) {
+            return $this->redirect(['site/index']); 
+        }
+        return $this->redirect(['site/index']);
+    }
+    private function assignRole($model)
+    {
+        Yii::$app->db->createCommand()->update('auth_assignment', ['item_name' => $model->type], ['user_id' => $model->id])->execute();
+        
+        $authManager = Yii::$app->authManager;
+        $roles = $authManager->getRolesByUser($model->id);
+
+        if (empty($roles)) {
+            if ($model->type === 'admin') {
+                $role = $authManager->getRole('admin');
+            } else {
+                $role = $authManager->getRole('user');
+            }
+
+            if ($role) {
+                $authManager->assign($role, $model->id);
+            } else {
+                Yii::warning('Role not found for assignment: ' . $model->type);
+            }
+        }
     }
 }
