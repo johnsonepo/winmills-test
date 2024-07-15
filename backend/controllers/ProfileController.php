@@ -2,6 +2,7 @@
 
 namespace backend\controllers;
 
+use common\constants\UserStatus;
 use Yii;
 use yii\base\Model;
 use common\models\User;
@@ -9,10 +10,8 @@ use yii\data\ActiveDataProvider;
 use yii\web\BadRequestHttpException;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
-use yii\filters\VerbFilter;
-use common\models\LoginForm;
-use yii\filters\AccessControl;
-use yii\web\ForbiddenHttpException;
+use common\services\UserService;
+use stdClass;
 
 class ProfileController extends Controller
 {
@@ -26,35 +25,25 @@ class ProfileController extends Controller
             return $this->goHome();
         }
 
+        $model = new User();
+        $model->scenario = User::SCENARIO_CREATE;
+
         $auth = Yii::$app->authManager;
         $roles = $auth->getRoles();
 
-        $model = new User();
-        $model->scenario = User::SCENARIO_CREATE;
-                
-        $csrf_token = '';
-        if (isset(Yii::$app->request->post()["_csrf-backend"])) {
-            $csrf_token = Yii::$app->request->post()["_csrf-backend"];
-        } 
+        $statuses = $model->getStatusLabels();
 
-        $request = Yii::$app->request;
-        $request_token = $request->post(Yii::$app->request->csrfParam); 
+        // $this->verify_csrf_token(Yii::$app->request);  manually verify again if need be
 
-        $this->verify_csrf_token($csrf_token, $request_token);
+        $new_user = $this->getUserData(Yii::$app->request->post());
 
-        $new_user = [];
-        if (isset(Yii::$app->request->post()["User"])) {
-            $new_user = Yii::$app->request->post()["User"];
-        } 
-        
         $this->validateInput($model, $new_user);
         $model->generateAuthKey();
-        $model->status = $model->status ?? 9;
+        $model->status = $model->status ?? UserStatus::STATUS_INACTIVE;
 
         if ($model->save()) {
-
-            $this->assignRole($model);
-
+            $this->asignRole($model);
+            $model->logActivity('created', get_class($model), json_encode($model->attributes));
             Yii::$app->session->setFlash('success', 'User created successfully.');
             return $this->redirect(Yii::$app->request->referrer ?: ['view', 'id' => $model->id]);
         } else {
@@ -63,7 +52,8 @@ class ProfileController extends Controller
         
         return $this->render('/site/user/add-new', [
             'model' => $model,
-            'roles' => $roles
+            'roles' => $roles,
+            'statuses' => $statuses
         ]);
     }
 
@@ -75,12 +65,13 @@ class ProfileController extends Controller
 
         $model = Yii::$app->user->identity;
         $model->password_hash = ''; 
-
-        $this->assignRole($model);
         $model->scenario = User::SCENARIO_UPDATE;
 
+        
         $this->layout = 'main';
-        return $this->render('/site/user/profile', ['model' => $model]);
+        return $this->render('/site/user/profile', [
+            'model' => $model,
+        ]);
     }
     public function actionNew()
     {
@@ -92,19 +83,21 @@ class ProfileController extends Controller
             return $this->goHome();
         }
         
-        $auth = Yii::$app->authManager;
-
-        $roles = $auth->getRoles();
-
         $model = new User();
         $model->scenario = User::SCENARIO_CREATE;
+
+        $auth = Yii::$app->authManager;
+        $roles = $auth->getRoles();
+
+        $statuses = $model->getStatusLabels();
 
         $this->layout = 'main';
         $model->password_hash = '';
 
         return $this->render('/site/user/add-new', [
             'model' => $model,
-            'roles' => $roles
+            'roles' => $roles,
+            'statuses' => $statuses
         ]);
     }
     //update user profile
@@ -121,28 +114,12 @@ class ProfileController extends Controller
             throw new NotFoundHttpException('User not found.');
         }        
 
-        $csrf_token = '';
-        if (isset(Yii::$app->request->post()["_csrf-backend"])) {
-            $csrf_token = Yii::$app->request->post()["_csrf-backend"];
-        } 
-
-        $request = Yii::$app->request;
-        $request_token = $request->post(Yii::$app->request->csrfParam); 
-
-        $this->verify_csrf_token($csrf_token, $request_token);
-
-        $new_user = [];
-        if (isset(Yii::$app->request->post()["User"])) {
-            $new_user = Yii::$app->request->post()["User"];
-        } 
-        $new_user = (array)$new_user;
-
-        $this->validateInput($model, $new_user);
+        $new_user = $this->getUserData(Yii::$app->request->post());
+        $new_attributes =  $this->validateInput($model, $new_user);
 
         if ($model->save()) {
-
-            $this->assignRole($model);
-
+            $this->asignRole($model);
+            $model->logActivity('updated', get_class($model), json_encode($new_attributes));
             Yii::$app->session->setFlash('success', 'Profile updated successfully.');
             return $this->redirect(Yii::$app->request->referrer ?: ['view', 'id' => $model->id]);
         } else {
@@ -156,36 +133,38 @@ class ProfileController extends Controller
         return $this->render('/site/user/profile', ['model' => $model]);
         
     }
-    private function verify_csrf_token($csrf_token, $request_token)
+    private function verify_csrf_token($request)
     {
-        if ($csrf_token !== $request_token) {
-            Yii::error('CSRF validation failed!');
-            throw new BadRequestHttpException('Invalid CSRF token. Please refresh the page and try again.');
+        if (!$request->validateCsrfToken($request->post(Yii::$app->request->csrfParam))) {
+            throw new BadRequestHttpException('Invalid CSRF token.');
         }
     }
 
     public function actionUsers()
-    {
-        if (Yii::$app->user->isGuest) {
-            return $this->goHome();
-        }
-        if (!Yii::$app->user->can('admin')) {
-            return $this->goHome();
-        }
-
-        $data_provider = new ActiveDataProvider([
-            'query' => User::find(),
-            'pagination' => [
-                'pageSize' => 10, 
-            ],
-        ]);
-
-        $this->layout = 'main';
-
-        return $this->render('/site/user/users', [
-            'dataProvider' => $data_provider,
-        ]);
+{
+    if (Yii::$app->user->isGuest) {
+        return $this->goHome();
     }
+    if (!Yii::$app->user->can('admin')) {
+        return $this->goHome();
+    }
+
+    $deletedStatus = UserStatus::STATUS_DELETED;
+
+    $dataProvider = new ActiveDataProvider([
+        'query' => User::find()->where(['not', ['status' => $deletedStatus]]),
+        'pagination' => [
+            'pageSize' => 10,
+        ],
+    ]);
+
+    $this->layout = 'main';
+
+    return $this->render('/site/user/users', [
+        'dataProvider' => $dataProvider,
+    ]);
+}
+
     public function actionEdited($id)
     {
         if (Yii::$app->user->isGuest) {
@@ -203,28 +182,13 @@ class ProfileController extends Controller
             throw new NotFoundHttpException('User not found.');
         }        
 
-        $csrf_token = '';
-        if (isset(Yii::$app->request->post()["_csrf-backend"])) {
-            $csrf_token = Yii::$app->request->post()["_csrf-backend"];
-        } 
+        $new_user = $this->getUserData(Yii::$app->request->post());
 
-        $request = Yii::$app->request;
-        $request_token = $request->post(Yii::$app->request->csrfParam); 
-
-        $this->verify_csrf_token($csrf_token, $request_token);
-
-        $new_user = [];
-        if (isset(Yii::$app->request->post()["User"])) {
-            $new_user = Yii::$app->request->post()["User"];
-        } 
-        $new_user = (array)$new_user;
-
-        $this->validateInput($model, $new_user);
+        $new_attributes = $this->validateInput($model, $new_user);
 
         if ($model->save()) {
-
-            $this->assignRole($model);
-
+            $this->asignRole($model);
+            $model->logActivity('updated', get_class($model), json_encode($new_attributes));
             Yii::$app->session->setFlash('success', 'Profile updated successfully.');
             return $this->redirect(Yii::$app->request->referrer ?: ['view', 'id' => $model->id]);
         } else {
@@ -232,7 +196,6 @@ class ProfileController extends Controller
         }
 
         $model->password_hash = '';
-
         $this->layout = 'main';
 
         return $this->render('/site/user/edit', ['model' => $model]);
@@ -259,14 +222,18 @@ class ProfileController extends Controller
         $auth = Yii::$app->authManager;
         $roles = $auth->getRoles();
 
-        $current_role = array_keys($auth->getRolesByUser($model->id));
-        $model->role = $current_role;
+        $current_user_role = array_keys($auth->getRolesByUser($model->id));
+        $model->role = $current_user_role;
 
+        $statuses = $model->getStatusLabels();
+        //dd($statuses);
+    
         $this->layout = 'main';
 
         return $this->render('/site/user/edit', [
             'model' => $model,
-            'roles' => $roles
+            'roles' => $roles,
+            'statuses' => $statuses
         ]);
 
     }
@@ -275,24 +242,29 @@ class ProfileController extends Controller
         if (Yii::$app->user->isGuest) {
             return $this->goHome();
         }
-    
+
         if (!Yii::$app->user->can('admin')) {
             return $this->goHome();
         }
-    
+
         $model = $this->findModel($id);
-    
+
         if (!$model) {
             throw new NotFoundHttpException('User not found.');
         }
-    
-        $authManager = Yii::$app->authManager;
-        $authManager->revokeAll($model->id);
-    
-        $model->delete();
-    
-        return $this->redirect(['user/users']);
+
+        $model->status = UserStatus::STATUS_DELETED;
+        
+        if ($model->save(false)) { 
+            $model->logActivity('deleted', get_class($model), json_encode($id));
+            Yii::$app->session->setFlash('success', 'User profile deleted successfully.');
+        } else {
+            Yii::$app->session->setFlash('error', 'Failed to delete user profile.');
+        }
+
+        return $this->redirect(Yii::$app->request->referrer ?: ['view', 'id' => $model->id]);
     }
+
     protected function findModel($id)
     {
         if (($model = User::findOne($id)) !== null) {
@@ -305,6 +277,7 @@ class ProfileController extends Controller
     {
         $post_data = array_map('trim', $post_data); 
         $post_data = array_map('htmlspecialchars', $post_data); 
+        $new = new \stdClass();
 
         foreach ($post_data as $attribute => $value) {
             if ($value === '' || $value === null) {
@@ -318,35 +291,26 @@ class ProfileController extends Controller
                 }else{
                     if($model->$attribute != $value) {
                         $model->$attribute = $value;
+                        $new->$attribute = $value;
                     }
                 }
                 
             }
         }
-        
-        return $model;
+
+        return $new;
     }
-
-    private function assignRole($model)
+    private function getUserData($post)
     {
-        Yii::$app->db->createCommand()->update('auth_assignment', ['item_name' => $model->type], ['user_id' => $model->id])->execute();
-        
-        $authManager = Yii::$app->authManager;
-        $roles = $authManager->getRolesByUser($model->id);
-
-        if (empty($roles)) {
-            if ($model->type === 'admin') {
-                $role = $authManager->getRole('admin');
-            } else {
-                $role = $authManager->getRole('user');
-            }
-
-            if ($role) {
-                $authManager->assign($role, $model->id);
-            } else {
-                Yii::warning('Role not found for assignment: ' . $model->type);
-            }
+        if (isset($post["User"])) {
+            return $post["User"];
         }
+        return [];
+    }
+    private function asignRole($model)
+    {
+        $user_service = new UserService();
+        $user_service->assignRole($model);
     }
 
 }
